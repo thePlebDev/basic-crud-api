@@ -1,0 +1,14 @@
+-----------------------------------------WHAT WE WANT TO DO---------------------------------------------------
+1)  connect with Mongo DB
+2) create a schema, model and document
+3) create the basic crud functions
+4) make some views
+5) read up on security
+6) launch on Heroku
+-----------------------------------------------------------
+1) create a frontend with react
+2) connect the two
+
+
+- the very first thing that we are going to do is version the api so that we have to put the v1 into the URL
+and if we want to update it in the future we will be able to do so with east 
