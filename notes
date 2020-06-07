@@ -1,6 +1,6 @@
 -----------------------------------------WHAT WE WANT TO DO---------------------------------------------------
-1)  connect with Mongo DB
-2) create a schema, model and document
+(DONE) 1)  connect with Mongo DB
+(DONE) 2) create a schema, model and document, of the blog posts and the comments on the blog posts
 3) create the basic crud functions
 4) make some views
 5) read up on security
@@ -11,4 +11,210 @@
 
 
 - the very first thing that we are going to do is version the api so that we have to put the v1 into the URL
-and if we want to update it in the future we will be able to do so with east 
+and if we want to update it in the future we will be able to do so with ease. so we have set up the versions
+
+
+
+SETTING HTTP STATUS CODES:
+- so in express the defuault status code is 200 and if you make a request to where no resource is found and
+the server doesnt have it, then express will send a 404 Error
+- a good API uses the HTTP status codes properly
+- react is just a view library. its a library for rendering our views. React is just the view in the model
+view controller
+- so It looks like I wont have to use EJS or someother templating engine when I go to create a real app
+
+
+MONGODB:
+- is a non-relational database and are often called NoSQL database, this just means that they are a little
+less structured like a spreadsheet and it makes the database feel more like javascript than a database
+- so Mongo is the native shell that we can use
+
+HOW MONGO WORKS:
+-most applications have one database like Mongo. These databases are hosted by servers. A Mongo server can have
+many databases on it but it is generally one database per application
+- to access these databases we will run a Mongo server. Clients will talk to servers viewing and manipulating the
+database. there are client libraries for most programming languages; these libraries are called drivers and
+they let us talk to the database. we will be using the Node driver for mongo
+
+SETTING UP MONGO:
+- we install mongo locally so that we can use it while developing, we already did this when we added it to the
+path environment.
+
+
+TALKING TO MONGO FROM NODE WITH MONGOOSE:
+-we will need a library that will let use talk to mongo from node and we do this with mongoose, mongoose lets
+us manipulate the data on the database
+- so we will now try to connect the database via the cloud and MongoDB Atlas
+
+SETTING UP MONGODB ATLAS:
+-setting up the connection to atlas is super simple, all we have to do is go to atlas and follow the promps
+for creating a new cluster, make sure that we have our ip-address whitelisted in order for the conneciton to
+work. we then use the connection string in mongoose.connect(), set up a little error handling and that should
+work out a ok.
+
+DATA MODEL DESIGN:
+-the key consideration of the structure of our documents is the decision to embed or to use references.
+- with MongoDB we may embed related data in a single structure or document. these schema are generally know
+as denormalized models, and take advantage of MongoDB's rich documents. its literally just a porperty on the
+JSON with another object
+
+-in general, we use embedded data models when:
+1) we have 'contains' relationships between entities(one to one relationships)
+2) you have onr-to-many relationships between entities. In these relationships the 'many' or child documents
+always appear with or are viewed in the context of the 'one' or parent documents
+- I think that this one to many relationship is the relationship that I want for my blog posts
+
+ONE-TO-ONE RELATIONSHIPS WITH EMBEDDED DOCUMENTS:
+-embedding connected data in a single document can reduce the number of read operations required to obtain data
+- in general we should structure our schema so our application recieves all of its required information in a single
+read operation.
+- the problem with the embedded document pattern is that it can lead to large documents that contain fields
+that the application does not need. this can cause the server to run slow
+
+
+ONE-TO-MANY RELATIONSHIPS WITH EMBEDDED DOCUMENTS:
+- this describes a data model that uses references between documents to describe one-to-many relationships
+between connected data.
+-I think that this one-to-many database design can also bee called a normalized data model
+- sometimes it makes send to store related information in separate documents, typically in a different collection
+or databases
+
+-MongoDB applications use one of two methods for relating documents:
+1) Manual references where you save the _id field of one docuemtn in another document as a reference then our
+applicaiton can run a second query to return the related data. these references are simple and sufficient
+for most use cases
+
+2) DBRefs are references from one document to another using the value of the first documents _id field, collection
+name and optionally its database name.By including these names, DBRefs allow documnets located in multiple collections
+to be more eaisly linked sith documents from a single collection. To resolve DBRefs our application must perform
+additional queries to return the referenced documents many drivers have helper methods that form queries
+for the DBRef automatically
+- unless we have a good reason, we should use a manual reference, we are going to use a manual reference
+
+
+MANUAL REFERENCES:
+- so we will need to have one reference one document's id in another document in order to reference it.
+- where we save the _id field of one document in another document as a reference. Then our applicaiton
+can run a second query to return the related data. These references are simple and sufficient for most use
+cases
+-so we have the id of one document( which would be the blog post ) in another document as a reference(comment)
+
+- keep seeing this $lookup aggregation and that might be my ticket. the $lookup aggregation operator is what
+MongoDb has but mongoose has a more powerful alternative called populate(), this lets up reference
+documents in other collections.
+
+POPULATE:
+- this is the process of automatically replacing the specific paths in the document(s) from  other collections.
+- so we would do something like in the schema of the comments: [{type:Schema.types.ObjectId,ref:'Blog'}] and
+we would do this before compiling it down to a model
+
+
+SCHEMA TYPES:
+- the schema is a congigurable object for a mongoose model. A schema type is then a configuration object
+for an individual property. A Schema type days what type a given path should have, whether it has any getters or
+setters and what values for that path. So a path is just an individual property in the schema like a name property
+- so an object id is a special type used for uniqiue identifiers, so when we create a ObjectId we are creating
+a unique identifier
+so we would have the a schema comment and then we would want to have a reference the the blogs id
+- so we would need to query for that specific blogPost and then set a reference to that blog post on the
+comment schema. I think this is what population does
+
+POPULATION:
+-so this is done through a query builder
+- populated paths are no longer set to their original _id, their values is replaced with the mongoose document
+returned from the database by performing a separate query before returning the results
+-so we are definitely going to use the populate function
+
+-so we will create a Blog post schema first with title,author,body and date paths
+
+-so first we need to define our schema, so that means importing mongoose and an instance of schema
+- so we have created our schema type with all our properties and their associated SchemaTypes
+- then we need to compile the schema down to a model using mongoose.model('Name',schema)
+- the first value in the model method is singluar version of the model we want. Mongoose will automatically
+look for the plurarl, lowercased version of the model name. so in our example it will look for names collection
+-if it does not find one then it will create one. model() creates a copy of the schema
+- an instance of the model will create a document and we create them by simply calling the save method on them
+
+- when we want to add some functions to the blog object if they have to do with querying we should use the
+query helper. to set them we go <schemaName>.query.<methodName>
+
+- ok so now we want to create the an a document when a certain request to the url is made.
+
+-ok so we already have our model we need to import it and then create an instance of it.
+- so now we have our blog post we need to create a comment schema and have a manual reference to the blog
+post that it is creating.
+- so first create the CommentSchema
+
+
+THE NEW KEYWORD:
+- lets us create an instance of a user-defined object type or of one of the built-in object types that has a
+constructor function
+- the new keyword does a few things, creates a blank, plain Javascript object, passes the newly created object
+from Step 1 as the this context, returns this if the function doesn't return an object.
+- so basically it creates a new instance of the object
+
+
+-so I have now have create the blog schema and now I am creating the comment schema. I just have to figure
+out the manual reference with the populate function
+
+- so when we are trying to do a manual reference we need to tell mongoose about it in the Schema.
+-so I think that I have my Schema right.
+
+- so now I think I have to run the populate method.
+- so we need to populate our comments BlofPost reference and apparently we are going to do this with the
+query builder
+- we will can findOne(). when executed the first found document is passed to the callback
+- it takes a filter which is a mongodb selector
+- after linking other collections in our schema using the appropriate type and ref, the actual stored data
+for that property will be another document's _id. It will be stored as a string
+- so essentialy we are doing all of this to add another documents id to this tab
+
+- a path definitely has something to do with Schema property type names and schema types
+- so I have found out that we have to call the findOne method on a model, so my next question is what the heck is
+the actual populate method.
+- ok but what is findOne returing? so its returning a query of the actual
+
+-ok so the blog that we have specified in the commentSchema as a ref, is what tells Mongoose which model to use
+during population, so that means that all the ids we store in the BlogRef are going to be ids from the
+Blog model
+
+
+-ok so this is what we have so far
+1) we create a schema and replace the paths on the schema that we want replaced with the reference to the
+other documents with [{type: Schema.Types.ObjectId,ref: 'Blog'}] the ref option is what tells Mongoose
+which model to use during population. so we are saying that when we go populate we want to use the Blog model,
+but inside the database it is actually blogs. I think I have this down 100%
+
+2) then the actual population happens. We want to populate our comments blogRef. so we would go comment.findOne()
+to find the comment and the blogRef that we want to populate using the query builder.
+so we would go:
+    commentModel.findOne({ body:'this is a body' })
+    .populate(blogRef)
+- the populated paths are no longer set to their original _id, their value is replaced with the mongoose
+document returned from the database by performing a separate query before returning the results
+- so I am still kind confused about what populate event does.
+
+- ok so we are doing everything right, no error but our blogRef property is empty
+
+
+- just to reiterate, it goes schema and then the schema gets compiled down to a model and then an instance
+of a model is a document
+
+- cool so I got an unhandled error event, well not cool but its my first one
+
+- so we defiently have the schema and model part down
+- our findOne query is defiently working, that is not the problem. it must be the populate
+- we want to populate a single document
+- so I think our problem is that we need to populate an existing document, meaning that we use
+document.populate() instead of model.populate()
+
+-lets try to copy the whole author book model that the docs have so we can see where we are going wrong
+- after linking other collections in the schema using the appropriate type and ref. the actual stored data
+for that property will be another document's _id. it will be stored as a string
+- so on the blog model we are telling it to populate the comments with
+
+(done)1) MAKE THE SCHEMAS
+(done)1) CORRECTLY CREATE BLOGS AND COMMENTS
+
+-so it is clear that I am not going to get this to work unless I have some help, so that means that I am
+going to use the sub document model instead.
